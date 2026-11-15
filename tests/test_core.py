@@ -124,3 +124,11 @@ def test_judge_matches_nodeids_relative_to_a_subdirectory_rootdir():
     head = run(**{"tests/test_a.py::TestX::test_y": "passed"})
     base = run(**{"tests/test_a.py::TestX::test_y": "failed"})
     assert judge(targets, head, base)[0] == PROVES_FIX
+
+
+def test_needs_file_fallback():
+    from redfirst.core import needs_file_fallback
+
+    assert needs_file_fallback({"tests": {}, "tail": "ERROR: not found: tests/test_a.py::test_x"})
+    assert not needs_file_fallback({"tests": {"a": {"outcome": "passed"}}, "tail": "not found:"})
+    assert not needs_file_fallback({"tests": {}, "tail": "collection error"})

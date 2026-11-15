@@ -30,7 +30,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "src"))
 sys.path.insert(0, str(HERE))
 
-from redfirst.core import HEAD_NOT_GREEN, judge  # noqa: E402
+from redfirst.core import HEAD_NOT_GREEN, judge, needs_file_fallback  # noqa: E402
 from redfirst.repo import code_at_base, make_plan  # noqa: E402
 
 import envplan  # noqa: E402
@@ -86,7 +86,7 @@ def docker(job_id: str, run_dir: Path, clone: Path, command: list[str], network:
         "--cpus", "2", "--memory", "2200m", "--pids-limit", "4096",
         "--user", UID,
         "-e", f"HOME={run_dir}/home",
-        "-e", f"TMPDIR={run_dir}/tmp",
+        "-e", "TMPDIR=/tmp",  # not the shared folder: virtiofs cannot read unlinked temp files
         "-e", f"UV_CACHE_DIR={WORK}/uv-cache",
         "-e", f"UV_PYTHON_INSTALL_DIR={WORK}/uv-python",
         "-e", "UV_LINK_MODE=copy",
@@ -163,12 +163,17 @@ def run_job(job: dict) -> dict:
             record["verdict"] = "env_failed"
             return record
         record["python"] = (run_dir / "python.txt").read_text().strip() if (run_dir / "python.txt").exists() else None
-        head_run = pytest_phase(job["id"], run_dir, clone, plan.files, "head")
+        selection = plan.selection
+        head_run = pytest_phase(job["id"], run_dir, clone, selection, "head")
+        if needs_file_fallback(head_run):
+            selection = plan.files
+            head_run = pytest_phase(job["id"], run_dir, clone, selection, "head")
+        record["selection"] = "files" if selection is plan.files else "tests"
         record["head_run"] = {k: head_run[k] for k in ("returncode", "seconds", "tail")}
         verdict, rows = judge(plan.targets, head_run, {"tests": {}, "collect_errors": []})
         if verdict != HEAD_NOT_GREEN:
             with code_at_base(run_dir / "src", plan):
-                base_run = pytest_phase(job["id"], run_dir, clone, plan.files, "base")
+                base_run = pytest_phase(job["id"], run_dir, clone, selection, "base")
             record["base_run"] = {k: base_run[k] for k in ("returncode", "seconds", "tail")}
             verdict, rows = judge(plan.targets, head_run, base_run)
             (out_dir / "raw_base.json").write_text(json.dumps(base_run))

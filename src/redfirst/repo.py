@@ -65,6 +65,11 @@ class Plan:
     files: list[str] = field(default_factory=list)  # test modules to run
     early: str | None = None  # verdict reached without running anything
 
+    @property
+    def selection(self) -> list[str]:
+        """The target test ids, to run only the tests the change added or edited."""
+        return sorted(self.targets)
+
     def summary(self) -> dict:
         return {
             "base": self.base,

@@ -158,3 +158,33 @@ def test_shallow_merge_commit_like_github_actions(repo, tmp_path):
     report = check(clone, base, "HEAD", sys.executable, 120, [])
     assert report["verdict"] == PROVES_FIX
     assert report["plan"]["code_files_changed"] == ["calc.py"]
+
+
+def test_uncollectable_target_falls_back_to_whole_files(repo):
+    """pytest runs nothing when one selected id is not collected; fall back to files."""
+    tests = OLD_TESTS + textwrap.dedent(
+        """
+
+        def test_add():
+            assert add(2, 3) == 5
+
+        class TestNotCollected:
+            def __init__(self):
+                pass
+
+            def test_y(self):
+                assert True
+        """
+    )
+    report = verdict_for(repo, {"calc.py": FIXED, "tests/test_calc.py": tests})
+    assert report["selection"] == "files"
+    assert report["verdict"] == PROVES_FIX
+    heads = {r["test"].split("::", 1)[1]: r["head"] for r in report["rows"]}
+    assert heads == {"test_add": "passed", "TestNotCollected::test_y": "missing"}
+
+
+def test_runs_only_the_selected_tests_by_default(repo):
+    tests = OLD_TESTS + "\ndef test_add():\n    assert add(2, 3) == 5\n"
+    report = verdict_for(repo, {"calc.py": FIXED, "tests/test_calc.py": tests})
+    assert report["selection"] == "tests"
+    assert "1 passed" in report["head_run"]["tail"]

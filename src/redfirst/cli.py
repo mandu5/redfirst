@@ -27,6 +27,7 @@ from .core import (
     PASSES_WITHOUT_FIX,
     PROVES_FIX,
     judge,
+    needs_file_fallback,
 )
 from .repo import GitError, code_at_base, git, make_plan
 
@@ -75,13 +76,18 @@ def check(repo: Path, base: str, head: str, python: str, timeout: int, extra: li
     if plan.early:
         report["verdict"] = plan.early
         return report
-    head_run = run_pytest(python, plan.files, repo, timeout, extra)
+    selection = plan.selection
+    head_run = run_pytest(python, selection, repo, timeout, extra)
+    if needs_file_fallback(head_run):
+        selection = plan.files
+        head_run = run_pytest(python, selection, repo, timeout, extra)
+    report["selection"] = "files" if selection is plan.files else "tests"
     report["head_run"] = {k: head_run[k] for k in ("returncode", "seconds", "tail")}
     verdict, rows = judge(plan.targets, head_run, None) if _nothing_green(plan, head_run) else (None, None)
     base_run = None
     if verdict is None:
         with code_at_base(repo, plan):
-            base_run = run_pytest(python, plan.files, repo, timeout, extra)
+            base_run = run_pytest(python, selection, repo, timeout, extra)
         report["base_run"] = {k: base_run[k] for k in ("returncode", "seconds", "tail")}
         verdict, rows = judge(plan.targets, head_run, base_run)
     report["verdict"] = verdict

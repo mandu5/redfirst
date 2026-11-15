@@ -154,6 +154,11 @@ def _same_test(target: str, reported: str) -> bool:
     return t_path == r_path or t_path.endswith("/" + r_path) or r_path.endswith("/" + t_path)
 
 
+def needs_file_fallback(run: dict) -> bool:
+    """pytest runs nothing when any selected id is not found; then run whole files."""
+    return not run.get("tests") and "not found:" in (run.get("tail") or "")
+
+
 def cases_for(target: str, tests: dict[str, dict]) -> list[dict]:
     """All reported cases (parametrized ids included) that belong to one target."""
     return [dict(case, nodeid=nodeid) for nodeid, case in tests.items() if _same_test(target, nodeid)]

@@ -68,10 +68,12 @@ those, the one merged closest in time; up to ten candidates are checked.
    dependency groups or tool-specific dev dependencies, resolved with
    `uv --exclude-newer` set to the day after the merge, so dependencies are the
    versions that existed then. Setup has network access.
-4. Run the changed test modules at head, network off.
+4. Run the target tests by id at head, network off. If pytest cannot find
+   one of the ids it runs nothing; then the whole changed test modules are
+   run instead, and the same selection is used in step 5.
 5. Undo every code-side change (restore base content, delete files the pull
-   request added), keep the test side at head, and run the same modules again,
-   network off.
+   request added), keep the test side at head, and run the same selection
+   again, network off.
 6. Fold each target's cases (parametrized ids) into one outcome, then judge
    only targets that passed at head:
    - `proves_fix`: at least one fails without the change;
@@ -131,9 +133,13 @@ pull requests. Below that, the week's verdict is a fail on the spot.
 
 ## Pilot
 
-The first four agent draws and their human matches were run to debug the
-harness before this protocol was fixed. Their results were discarded; they
-are rerun in the main run with the frozen harness.
+The first four agent draws and their human matches were run twice to debug
+the harness before this protocol was fixed. Round one ran whole test
+modules and put temporary files on the shared folder, where pytest's capture
+files could not be read back (one job crashed). Round two ran target ids
+and kept temporary files inside the container; the six judged verdicts of
+round one did not change and the crashed job ran. Pilot results are
+discarded; these jobs are rerun in the main run with the frozen harness.
 
 ## Deviations
 
