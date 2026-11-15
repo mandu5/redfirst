@@ -1,0 +1,59 @@
+name: redfirst
+description: Check that the tests a pull request adds fail without its fix.
+author: mandu5
+branding:
+  icon: check-circle
+  color: red
+
+inputs:
+  base:
+    description: Commit the change started from. Defaults to the pull request base.
+    required: false
+    default: ""
+  python:
+    description: Interpreter of the environment your tests run in.
+    required: false
+    default: python
+  mode:
+    description: "warn: report only. fail: fail the job when every new test passes without the fix."
+    required: false
+    default: warn
+  pytest-args:
+    description: Extra arguments for pytest, space separated.
+    required: false
+    default: ""
+
+outputs:
+  verdict:
+    description: proves_fix, fails_by_error, passes_without_fix, inconclusive, head_not_green, no_new_tests, no_code_change or needs_rebuild.
+    value: ${{ steps.check.outputs.verdict }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        RF_BASE: ${{ inputs.base || github.event.pull_request.base.sha }}
+        RF_PYTHON: ${{ inputs.python }}
+        RF_MODE: ${{ inputs.mode }}
+        RF_ARGS: ${{ inputs.pytest-args }}
+        RF_SRC: ${{ github.action_path }}/src
+      run: |
+        if [ -z "$RF_BASE" ]; then
+          echo "redfirst: no base commit; run on pull_request events or set the base input" >&2
+          exit 1
+        fi
+        git cat-file -e "$RF_BASE^{commit}" 2>/dev/null || git fetch --no-tags --depth=1 origin "$RF_BASE"
+        set +e
+        PYTHONPATH="$RF_SRC${PYTHONPATH:+:$PYTHONPATH}" "$RF_PYTHON" -m redfirst check \
+          --base "$RF_BASE" --mode "$RF_MODE" --json "$RUNNER_TEMP/redfirst.json" \
+          --summary "$GITHUB_STEP_SUMMARY" -- $RF_ARGS
+        code=$?
+        set -e
+        verdict=$("$RF_PYTHON" -c "import json,sys; print(json.load(open(sys.argv[1]))['verdict'])" "$RUNNER_TEMP/redfirst.json" 2>/dev/null || echo error)
+        echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+        if [ "$verdict" = "passes_without_fix" ]; then
+          echo "::warning title=redfirst::The new tests pass even with the code change undone. They do not test what the change changed."
+        fi
+        exit $code
