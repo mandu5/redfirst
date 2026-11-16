@@ -97,14 +97,21 @@ def summarise(records: list[dict]) -> dict:
 
 def _head_outcomes(recs: list[dict]) -> dict:
     """Why nothing passed at head, descriptive only: any target failed (the
-    test is red with the change), else all errored (usually a missing service
-    or fixture in the sandbox), else missing (not collected)."""
+    test is red with the change), else errored (usually a missing service or
+    fixture in the sandbox), else skipped, else missing (not collected)."""
     out = Counter()
     for r in recs:
         if r["verdict"] != "head_not_green":
             continue
         heads = {row["head"] for row in r.get("rows", [])}
-        out["failed" if "failed" in heads else "error" if "error" in heads else "missing"] += 1
+        if "failed" in heads:
+            out["failed"] += 1
+        elif "error" in heads:
+            out["error"] += 1
+        elif heads & {"skipped", "xfailed"}:
+            out["skipped"] += 1
+        else:
+            out["missing"] += 1
     return dict(out)
 
 

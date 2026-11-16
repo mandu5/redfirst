@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -31,7 +32,7 @@ from .core import (
 )
 from .repo import GitError, code_at_base, git, make_plan
 
-SRC_DIR = str(Path(__file__).resolve().parent.parent)
+PLUGIN = Path(__file__).resolve().parent / "plugin.py"
 
 HEADLINES = {
     PROVES_FIX: "The new tests fail without the code change. They test the change.",
@@ -48,11 +49,14 @@ HEADLINES = {
 def run_pytest(python: str, files: list[str], cwd: Path, timeout: int, extra: list[str]) -> dict:
     with tempfile.TemporaryDirectory(prefix="redfirst-") as tmp:
         result = Path(tmp) / "result.json"
+        # Only the standalone plugin goes on the project's path, so redfirst
+        # can live in another environment (pipx) than the one under test.
+        shutil.copy(PLUGIN, Path(tmp) / "redfirst_plugin.py")
         env = dict(os.environ)
         env["REDFIRST_RESULT"] = str(result)
-        env["PYTHONPATH"] = SRC_DIR + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+        env["PYTHONPATH"] = tmp + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
         env.setdefault("PYTHONDONTWRITEBYTECODE", "1")
-        cmd = [python, "-m", "pytest", "-p", "redfirst.plugin", "-p", "no:cacheprovider", "-q", "-rN", *extra, *files]
+        cmd = [python, "-m", "pytest", "-p", "redfirst_plugin", "-p", "no:cacheprovider", "-q", "-rN", *extra, *files]
         started = time.monotonic()
         try:
             proc = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)

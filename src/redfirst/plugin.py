@@ -1,9 +1,10 @@
 """pytest plugin: write every test's outcome to the JSON file named by
 the REDFIRST_RESULT environment variable.
 
-Load it with ``-p redfirst.plugin``. It is standalone on purpose: it runs
-inside the project's own environment, which may be an old Python, and it must
-not import anything that environment lacks.
+The command line copies this file into a temporary folder and loads it as
+``-p redfirst_plugin``; it can also be loaded as ``-p redfirst.plugin``. It is
+standalone on purpose: it runs inside the project's own environment, which
+may be an old Python, and it must not import anything that environment lacks.
 """
 
 import json
