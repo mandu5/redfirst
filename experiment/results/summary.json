@@ -1,0 +1,140 @@
+{
+ "groups": {
+  "agent": {
+   "jobs": 120,
+   "verdicts": {
+    "proves_fix": 56,
+    "head_not_green": 27,
+    "env_failed": 17,
+    "passes_without_fix": 10,
+    "no_new_tests": 7,
+    "fails_by_error": 3
+   },
+   "head_not_green_by_outcome": {
+    "error": 18,
+    "failed": 2,
+    "skipped": 5,
+    "missing": 2
+   },
+   "judged": 69,
+   "passes_without_fix": {
+    "k": 10,
+    "n": 69,
+    "share": 0.1449,
+    "ci95": [
+     0.0807,
+     0.2466
+    ]
+   },
+   "fails_by_error": {
+    "k": 3,
+    "n": 69,
+    "share": 0.0435,
+    "ci95": [
+     0.0149,
+     0.1202
+    ]
+   },
+   "tests_passing_without_fix": {
+    "k": 188,
+    "n": 400,
+    "share": 0.47,
+    "ci95": [
+     0.4216,
+     0.519
+    ]
+   },
+   "by_agent": {
+    "Claude_Code": {
+     "k": 8,
+     "n": 43,
+     "share": 0.186,
+     "ci95": [
+      0.0974,
+      0.3262
+     ]
+    },
+    "Copilot": {
+     "k": 1,
+     "n": 14,
+     "share": 0.0714,
+     "ci95": [
+      0.0127,
+      0.3147
+     ]
+    },
+    "Devin": {
+     "k": 0,
+     "n": 2,
+     "share": 0.0,
+     "ci95": [
+      0.0,
+      0.6576
+     ]
+    },
+    "OpenAI_Codex": {
+     "k": 1,
+     "n": 10,
+     "share": 0.1,
+     "ci95": [
+      0.0179,
+      0.4042
+     ]
+    }
+   }
+  },
+  "human": {
+   "jobs": 89,
+   "verdicts": {
+    "proves_fix": 46,
+    "head_not_green": 14,
+    "env_failed": 14,
+    "fails_by_error": 6,
+    "passes_without_fix": 5,
+    "no_new_tests": 4
+   },
+   "head_not_green_by_outcome": {
+    "error": 13,
+    "failed": 1
+   },
+   "judged": 57,
+   "passes_without_fix": {
+    "k": 5,
+    "n": 57,
+    "share": 0.0877,
+    "ci95": [
+     0.0381,
+     0.1895
+    ]
+   },
+   "fails_by_error": {
+    "k": 6,
+    "n": 57,
+    "share": 0.1053,
+    "ci95": [
+     0.0491,
+     0.2112
+    ]
+   },
+   "tests_passing_without_fix": {
+    "k": 120,
+    "n": 419,
+    "share": 0.2864,
+    "ci95": [
+     0.2452,
+     0.3315
+    ]
+   }
+  }
+ },
+ "paired": {
+  "pairs": 45,
+  "agent_pwf_human_pwf": 3,
+  "agent_pwf_only": 3,
+  "human_pwf_only": 1,
+  "neither": 38,
+  "agent_share": 0.1333,
+  "human_share": 0.0889,
+  "mcnemar_exact_p": 0.625
+ }
+}

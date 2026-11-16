@@ -1,0 +1,257 @@
+{
+ "agent-MervinPraison__PraisonAI-1191": {
+  "label": "gap",
+  "accommodating_edit": false,
+  "note": "The code adds locks and SQLite WAL pragmas, but the new test functions swallow all exceptions, print results and always return True with no asserts, so they pass on old code too.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "The code adds locks and SQLite WAL pragmas, but the new test functions swallow all exceptions, print results and always return True with no asserts, so they pass on old code too."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "Added locks and SQLite WAL pragmas for thread safety. The new tests catch all exceptions, print results and return True with no assertions or race detection, so they pass on the old code."
+  },
+  "case": "case-14"
+ },
+ "agent-RichardAtCT__claude-code-openai-wrapper-2": {
+  "label": "gap",
+  "accommodating_edit": false,
+  "note": "The fix changes content-block handling and filtering in main.py, but the added tests are scripts that call a live localhost:8000 server, catch all exceptions and return True/False without asserting, so pytest passes them regardless of the code.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "The fix changes content-block handling and filtering in main.py, but the added tests are scripts that call a live localhost:8000 server, catch all exceptions and return True/False without asserting, so pytest passes them regardless of the code."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "Streaming/non-streaming content extraction and middleware were changed. The added test_* functions are scripts that catch exceptions and return True/False (pytest ignores return), with no assertions, so they pass regardless of code."
+  },
+  "case": "case-09"
+ },
+ "agent-TomBadash__Mouser-20": {
+  "label": "gap",
+  "accommodating_edit": false,
+  "note": "The code change is to core/engine.py and core/hid_gesture.py (gesture handling), while the added tests only exercise core/config.py migration and defaults, which the diff does not change, so they pass on base.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "The code change is to core/engine.py and core/hid_gesture.py (gesture handling), while the added tests only exercise core/config.py migration and defaults, which the diff does not change, so they pass on base."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "Large engine/hid gesture handling changes (debug callbacks, poll thread args, gesture config). New tests only cover config migration/defaults that base already satisfies, so they do not touch the changed engine/hook behaviour. Diff cut at 400 lines."
+  },
+  "case": "case-15"
+ },
+ "agent-UKGovernmentBEIS__inspect_evals-973": {
+  "label": "unobservable",
+  "accommodating_edit": false,
+  "note": "Replaces private inspect_ai imports with public ones (a refactor plus lint-marker comments); the test edit only makes the mock model.name realistic and passes on both.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "unobservable",
+   "accommodating_edit": false,
+   "note": "Replaces private inspect_ai imports with public ones (a refactor plus lint-marker comments); the test edit only makes the mock model.name realistic and passes on both."
+  },
+  "reader2": {
+   "label": "unobservable",
+   "accommodating_edit": false,
+   "note": "Replaces private inspect_ai imports with public ones or local copies (lint rule private_api_imports); a pure refactor. The single test edit only corrects a mock model.name and is independent of the code change."
+  },
+  "case": "case-12"
+ },
+ "agent-Upsonic__Upsonic-550": {
+  "label": "gap",
+  "accommodating_edit": false,
+  "note": "call_tool now builds a ClientSession from the streams for every transport and str()s the resource uri; a unit test with a fake transport could check that. The only test that ran checks prefix-length handling in connect(), which the code side does not touch, so it passes on the old code. Its edit, and the result-unwrapping helper, align the tests with behaviour the code side did not change, so neither makes a test hold for both the old and the new call_tool: not an accommodating edit.",
+  "decided": "third read",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": true,
+   "note": "The fix to MCPHandler.call_tool session handling for SSE/streamable-http is only exercised by the structured-tool tests, which failed at head (likely needing live services); the one passing test checks connect() with mismatched prefixes, which the code change did not touch. The _unwrap_tool_result helper accepts both wrapped and unwrapped results."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "MCPHandler.call_tool now builds ClientSession for all transports and str()s resource uri. The only passing test checks prefix-length validation in connect(), which is unrelated; the tests that exercise the change failed at head (need real servers/LLM) and have no base result."
+  },
+  "case": "case-05"
+ },
+ "agent-aws__bedrock-agentcore-starter-toolkit-161": {
+  "label": "unobservable",
+  "accommodating_edit": false,
+  "note": "Pure pre-commit/ruff formatting and lint changes (import order, line wrapping, unused variable), in both code and tests.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "unobservable",
+   "accommodating_edit": false,
+   "note": "Pure pre-commit/ruff formatting and lint changes (import order, line wrapping, unused variable), in both code and tests."
+  },
+  "reader2": {
+   "label": "unobservable",
+   "accommodating_edit": false,
+   "note": "Pre-commit lint/formatting fixes (line wrapping, import order, whitespace, f-string without placeholder); test edits are formatting too."
+  },
+  "case": "case-13"
+ },
+ "agent-basicmachines-co__basic-memory-458": {
+  "label": "gap",
+  "accommodating_edit": true,
+  "note": "The code changed the default watch_project_reload_interval from 30 to 300; the test's hard-coded 30 was replaced by config.watch_project_reload_interval, so it holds for any default and passes on base.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": true,
+   "note": "The code changed the default watch_project_reload_interval from 30 to 300; the test's hard-coded 30 was replaced by config.watch_project_reload_interval, so it holds for any default and passes on base."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": true,
+   "note": "Default watch_project_reload_interval changed 30 -> 300. The only test was edited to compare against config.watch_project_reload_interval instead of the literal 30, so it holds for both old and new default."
+  },
+  "case": "case-01"
+ },
+ "agent-boringdata__boring-semantic-layer-194": {
+  "label": "gap",
+  "accommodating_edit": false,
+  "note": "Code now serializes join cardinality and dispatches to join_one/join_cross on reconstruct; the edited roundtrip test only adds how='left' to join_one and apparently does not assert that cardinality survives the roundtrip, so old code (always join_many) passes too.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "Code now serializes join cardinality and dispatches to join_one/join_cross on reconstruct; the edited roundtrip test only adds how='left' to join_one and apparently does not assert that cardinality survives the roundtrip, so old code (always join_many) passes too."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "Join cardinality is now serialised and used to dispatch join_one/join_cross on reconstruction. The edited roundtrip test only adds how='left' and does not assert the reconstructed cardinality/method, so old join_many reconstruction passes."
+  },
+  "case": "case-06"
+ },
+ "agent-pydata__xarray-10694": {
+  "label": "unobservable",
+  "accommodating_edit": false,
+  "note": "A mypy upgrade with type-only fixes: type: ignore comments, casts removed, list() wrappers for stubs, and test edits that add ignore comments or str(n) for typing; no runtime behaviour differs.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "unobservable",
+   "accommodating_edit": false,
+   "note": "A mypy upgrade with type-only fixes: type: ignore comments, casts removed, list() wrappers for stubs, and test edits that add ignore comments or str(n) for typing; no runtime behaviour differs."
+  },
+  "reader2": {
+   "label": "unobservable",
+   "accommodating_edit": false,
+   "note": "mypy upgrade: type ignores, casts, annotations and list() wrappers for type checking; test edits are likewise type-only. Behaviour is unchanged."
+  },
+  "case": "case-07"
+ },
+ "agent-python-openapi__openapi-schema-validator-274": {
+  "label": "other",
+  "accommodating_edit": false,
+  "note": "The code side is a benchmark script's import (private name to public name) and a docs wording fix. The test suite never imports the benchmark script, so undoing it cannot change any test, and the packet does not show whether the old import was broken. The edited test tightens an assertion on validator behaviour that the code side does not touch. Other: a tooling script outside the tested package.",
+  "decided": "third read",
+  "reader1": {
+   "label": "unobservable",
+   "accommodating_edit": false,
+   "note": "The code side only renames a private import in the benchmarks script and fixes a docs wording; the edited test tightens an assertion on validator behaviour that these changes never touched (could arguably be called a gap since an import smoke test of benchmarks/run.py was possible)."
+  },
+  "reader2": {
+   "label": "other",
+   "accommodating_edit": false,
+   "note": "Code side is only a benchmark script import rename (_clear_validate_cache -> clear_validate_cache) and a docs wording fix; no tested package code changed. The test edit just tightens pytest.raises(Exception) to ValidationError and passes on both."
+  },
+  "case": "case-04"
+ },
+ "human-PrefectHQ__prefect-21640": {
+  "label": "environment",
+  "accommodating_edit": false,
+  "note": "The code changes are whenever-library compat (ItemizedDelta, to_stdlib, in_local_tz naive fix) inside sys.version_info >= (3,13) branches plus a uv.lock whenever bump; the container ran a Python where the whenever branches are skipped or the pendulum backend is used, so the new tests pass on base.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "environment",
+   "accommodating_edit": false,
+   "note": "The code changes are whenever-library compat (ItemizedDelta, to_stdlib, in_local_tz naive fix) inside sys.version_info >= (3,13) branches plus a uv.lock whenever bump; the container ran a Python where the whenever branches are skipped or the pendulum backend is used, so the new tests pass on base."
+  },
+  "reader2": {
+   "label": "environment",
+   "accommodating_edit": false,
+   "note": "Changes are inside sys.version_info>=(3,13) whenever-library branches (whenever 0.10 API compat, in_local_tz naive fix). Version-gated tests are skipped and the rest ran on Python <3.13 using the pendulum branch, so old and new code behave the same."
+  },
+  "case": "case-10"
+ },
+ "human-TomBadash__Mouser-37": {
+  "label": "environment",
+  "accommodating_edit": true,
+  "note": "The real changes are Windows SendInput phased Alt+arrow keys, macOS path normalization and macOS autostart, none of which a Linux container exercises; the only edited test swapped the literal path for os.path.abspath(app_path), which holds under both old and new code.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "environment",
+   "accommodating_edit": true,
+   "note": "The real changes are Windows SendInput phased Alt+arrow keys, macOS path normalization and macOS autostart, none of which a Linux container exercises; the only edited test swapped the literal path for os.path.abspath(app_path), which holds under both old and new code."
+  },
+  "reader2": {
+   "label": "environment",
+   "accommodating_edit": true,
+   "note": "Changes are Windows SendInput phased Alt+arrow keys and darwin-only path normalisation (posixpath.normpath); a Linux container takes the same os.path.abspath branch either way. The test edit replaced the literal with os.path.abspath(app_path), which is valid on both."
+  },
+  "case": "case-02"
+ },
+ "human-Upsonic__Upsonic-551": {
+  "label": "gap",
+  "accommodating_edit": false,
+  "note": "Code removed the Skills knowledge_base argument and search tool and made strict_deps raise on missing dependencies (rest is comment removal and whitespace); the passing tests only check that four default tools exist and prefixing, which was already true on base, and the KB/GitHub tests failed or were skipped. The diff is cut so test details are partly unseen.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "Code removed the Skills knowledge_base argument and search tool and made strict_deps raise on missing dependencies (rest is comment removal and whitespace); the passing tests only check that four default tools exist and prefixing, which was already true on base, and the KB/GitHub tests failed or were skipped. The diff is cut so test details are partly unseen."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "Removed Skills knowledge_base param and search tool, and strict_deps now raises on missing dependencies; rest is comment/whitespace removal. Passing tests only check the default four tools (true at base too); the KB tests that would notice are skipped for missing keys. Diff partially cut."
+  },
+  "case": "case-11"
+ },
+ "human-python-openapi__openapi-schema-validator-265": {
+  "label": "gap",
+  "accommodating_edit": false,
+  "note": "is_byte switched from a re-encode round trip to b64decode(validate=True) with ascii-strict encoding; every added invalid value (bad padding, '$', whitespace, '_', '-') was already rejected by the old round-trip check, and no input that the two implementations treat differently (e.g. non-canonical or non-ASCII input) was added.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "is_byte switched from a re-encode round trip to b64decode(validate=True) with ascii-strict encoding; every added invalid value (bad padding, '$', whitespace, '_', '-') was already rejected by the old round-trip check, and no input that the two implementations treat differently (e.g. non-canonical or non-ASCII input) was added."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "is_byte switched from b64encode(b64decode(x))==x round-trip to b64decode(validate=True) plus strict ascii encode; these differ e.g. on non-canonical trailing bits or non-ascii input. Added valid/invalid values were already rejected/accepted by the old round-trip check, so none exercise a differing input."
+  },
+  "case": "case-03"
+ },
+ "human-trailofbits__fickling-171": {
+  "label": "gap",
+  "accommodating_edit": false,
+  "note": "StackGlobal.run now extracts identifiers from AST nodes instead of str() casting, but the added test only builds the pickle and calls unparse(pickled.ast) without asserting on the output, and base did not raise either; the BinPut/BinGet encode_body additions are also untested.",
+  "decided": "readers agree",
+  "reader1": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "StackGlobal.run now extracts identifiers from AST nodes instead of str() casting, but the added test only builds the pickle and calls unparse(pickled.ast) without asserting on the output, and base did not raise either; the BinPut/BinGet encode_body additions are also untested."
+  },
+  "reader2": {
+   "label": "gap",
+   "accommodating_edit": false,
+   "note": "StackGlobal now extracts identifiers from AST nodes and BinPut/BinGet gained encode_body. The new test only calls unparse(pickled.ast) with no assertion on output or serialisation, and the old str() cast path did not raise on this input, so it passes at base."
+  },
+  "case": "case-08"
+ }
+}

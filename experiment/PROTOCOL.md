@@ -180,3 +180,16 @@ discarded; these jobs are rerun in the main run with the frozen harness.
    per `passes_without_fix` pull request for the manual labels) and a
    descriptive breakdown of `head_not_green` by head outcome in
    `analyze.py`. Neither changes a verdict.
+3. Manual review, how it was done: the labels come from an LLM (Claude)
+   reading blind packets (`review.py --blind`: title, per-test outcomes and
+   diffs, with the group, the agent and the link removed, in an order set
+   by a hash of the job id), using the written rubric in
+   `review/RUBRIC.md`. The rubric spells out what "never exercise" means
+   for `gap`: a test that runs the changed code but asserts nothing that
+   differs before and after, or a test edited to accept both behaviours,
+   counts as `gap`. It also records `accommodating_edit` for the second
+   case. Two readers (separate sessions, same rubric, neither seeing the
+   other's labels) labelled every packet. Where they disagreed, a third
+   read of the diffs decided; both readers' labels are kept next to the
+   final one. The third read was done by the session that ran the study,
+   which knew the case names, so it was not blind.

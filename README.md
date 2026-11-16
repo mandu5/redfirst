@@ -36,7 +36,32 @@ The new tests fail without the code change. They test the change.
   tests/test_retry.py::test_backoff_is_capped  added   with change: passed    without: passed
 ```
 
-<!-- RESULTS -->
+## How often does this happen?
+
+I replayed 120 merged bug-fix pull requests opened by coding agents (Claude
+Code, Copilot, Codex, Devin and Cursor) in 120 Python repositories with more
+than 100 stars, and 89 human bug-fix pull requests from the same
+repositories. Each ran in an isolated container with the dependencies from
+its merge day.
+
+| | agent | human |
+| --- | --- | --- |
+| pull requests whose new tests pass with the change | 69 | 57 |
+| ... where every new test still passes with the fix undone | 10 (14%) | 5 (9%) |
+| ... and the change could have been tested | 6 | 3 |
+
+Agent pull requests did this more often, but the difference is within
+noise: 45 repositories had a judged pull request from each group, and an
+exact McNemar test on those pairs gives p = 0.63. So the finding is not
+that agents are worse. It is that roughly one in seven agent fixes and one
+in eleven human fixes were merged with tests that pass without the fix.
+Where the change could have been tested, the tests either checked nothing
+that changed (no assertion, every exception caught) or checked a
+neighbouring behaviour.
+
+Method, every number and the per pull request data are in
+[experiment/RESULTS.md](experiment/RESULTS.md). The protocol was written
+before the run: [experiment/PROTOCOL.md](experiment/PROTOCOL.md).
 
 ## Use it in GitHub Actions
 
@@ -118,8 +143,6 @@ not exercise the change; whether that matters is your call.
 - Changes to compiled sources need a rebuild, which redfirst does not do.
 - It runs the new tests twice, so it costs that much test time. Only the
   added or edited tests run, not your whole suite.
-
-<!-- STUDY -->
 
 ## A hosted version
 

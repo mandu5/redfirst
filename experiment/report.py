@@ -31,6 +31,10 @@ def pct(s: dict) -> str:
     return f"{s['k']} of {s['n']} ({s['share'] * 100:.1f}%, 95% CI {lo * 100:.1f} to {hi * 100:.1f}%)"
 
 
+def plain(s: dict) -> str:
+    return f"{s['k']} of {s['n']} ({s['share'] * 100:.1f}%)" if s["n"] else "-"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--summary", required=True, type=Path)
@@ -63,7 +67,8 @@ def main():
     out.append("| all new tests pass without the change | " + " | ".join(pct(groups[g]["passes_without_fix"]) for g in names) + " |")
     gap = {g: share(by_label[g]["gap"], groups[g]["judged"]) for g in names}
     out.append("| of judged, labelled `gap` | " + " | ".join(pct(gap[g]) for g in names) + " |")
-    out.append("| new tests that pass without the change, per test | " + " | ".join(pct(groups[g]["tests_passing_without_fix"]) for g in names) + " |")
+    # Per test is descriptive only: tests cluster within pull requests, so no interval.
+    out.append("| new tests that pass without the change, per test | " + " | ".join(plain(groups[g]["tests_passing_without_fix"]) for g in names) + " |")
     out.append("| `fails_by_error` | " + " | ".join(pct(groups[g]["fails_by_error"]) for g in names) + " |")
 
     out += ["", "| label | " + " | ".join(names) + " |", "| --- |" + " --- |" * len(names)]
