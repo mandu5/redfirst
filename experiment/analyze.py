@@ -58,6 +58,7 @@ def summarise(records: list[dict]) -> dict:
         g = {
             "jobs": len(recs),
             "verdicts": dict(verdicts.most_common()),
+            "head_not_green_by_outcome": _head_outcomes(recs),
             "judged": len(judged),
             "passes_without_fix": share(pwf, len(judged)),
             "fails_by_error": share(sum(r["verdict"] == "fails_by_error" for r in judged), len(judged)),
@@ -92,6 +93,19 @@ def summarise(records: list[dict]) -> dict:
         b, c = pairs[(True, False)], pairs[(False, True)]
         summary["paired"]["mcnemar_exact_p"] = round(_mcnemar(b, c), 4)
     return summary
+
+
+def _head_outcomes(recs: list[dict]) -> dict:
+    """Why nothing passed at head, descriptive only: any target failed (the
+    test is red with the change), else all errored (usually a missing service
+    or fixture in the sandbox), else missing (not collected)."""
+    out = Counter()
+    for r in recs:
+        if r["verdict"] != "head_not_green":
+            continue
+        heads = {row["head"] for row in r.get("rows", [])}
+        out["failed" if "failed" in heads else "error" if "error" in heads else "missing"] += 1
+    return dict(out)
 
 
 def _mcnemar(b: int, c: int) -> float:

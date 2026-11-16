@@ -143,4 +143,7 @@ discarded; these jobs are rerun in the main run with the frozen harness.
 
 ## Deviations
 
-None yet.
+None to the procedure. Added after the main run started, analysis only:
+`review.py` (one packet per `passes_without_fix` pull request for the
+manual labels) and a descriptive breakdown of `head_not_green` by head
+outcome in `analyze.py`. Neither changes a verdict.
