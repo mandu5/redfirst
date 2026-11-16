@@ -36,7 +36,8 @@ from redfirst.repo import code_at_base, make_plan  # noqa: E402
 import envplan  # noqa: E402
 
 WORK = Path(os.environ.get("RF_WORK", "/Users/gosmain/.cache/f2p-work"))
-IMAGE = os.environ.get("RF_IMAGE", "rf-runner:1")
+IMAGE = os.environ.get("RF_IMAGE", "rf-runner:2")
+HARNESS = "v2"
 SRC_MOUNT = WORK / "redfirst-src"
 UID = f"{os.getuid()}:{os.getgid()}"
 GIT_ENV = dict(
@@ -79,12 +80,38 @@ def fetch_pr(clone: Path, number: int, base_sha: str, head_sha: str) -> None:
         sh(["git", "fetch", "--quiet", "origin", base_sha], cwd=clone, timeout=900)
 
 
-def docker(job_id: str, run_dir: Path, clone: Path, command: list[str], network: bool, timeout: int, env: dict | None = None):
+IMAGE_PATH = "/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+
+def write_identity(run_dir: Path) -> None:
+    """passwd and group files that know the host uid the containers run as.
+    Without them getpass.getuser() and pwd.getpwuid() raise KeyError."""
+    uid, gid = os.getuid(), os.getgid()
+    etc = run_dir / "etc"
+    etc.mkdir(exist_ok=True)
+    (etc / "passwd").write_text(
+        "root:x:0:0:root:/root:/bin/bash\n"
+        f"rf:x:{uid}:{gid}:rf:{run_dir}/home:/bin/bash\n"
+        "nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n"
+    )
+    (etc / "group").write_text(f"root:x:0:\nrf:x:{gid}:\nnogroup:x:65534:\n")
+
+
+def docker(job_id: str, run_dir: Path, clone: Path, command: list[str], network: bool, timeout: int,
+           env: dict | None = None, workdir: Path | None = None):
     name = f"rf-{job_id}"[:120]
     args = [
         "docker", "run", "--rm", "--name", name,
         "--cpus", "2", "--memory", "2200m", "--pids-limit", "4096",
         "--user", UID,
+        "-v", f"{run_dir}/etc/passwd:/etc/passwd:ro",
+        "-v", f"{run_dir}/etc/group:/etc/group:ro",
+        "-e", "USER=rf",
+        "-e", "LOGNAME=rf",
+        # Console scripts of the project and its test tools (uvicorn, alembic,
+        # the project's own CLI) resolve from the environment, as in CI.
+        "-e", f"PATH={run_dir}/venv/bin:{IMAGE_PATH}",
+        "-e", f"VIRTUAL_ENV={run_dir}/venv",
         "-e", f"HOME={run_dir}/home",
         "-e", "TMPDIR=/tmp",  # not the shared folder: virtiofs cannot read unlinked temp files
         "-e", f"UV_CACHE_DIR={WORK}/uv-cache",
@@ -96,7 +123,11 @@ def docker(job_id: str, run_dir: Path, clone: Path, command: list[str], network:
         "-v", f"{clone}:{clone}",
         "-v", f"{WORK}/uv-python:{WORK}/uv-python" + ("" if network else ":ro"),
         "-v", f"{SRC_MOUNT}:{SRC_MOUNT}:ro",
-        "-w", str(run_dir / "src"),
+        # OpenAI tokenizer files, fetched once on the host: tiktoken downloads
+        # them on first use, which fails with the network off.
+        "-v", f"{WORK}/tiktoken-cache:{WORK}/tiktoken-cache:ro",
+        "-e", f"TIKTOKEN_CACHE_DIR={WORK}/tiktoken-cache",
+        "-w", str(workdir or run_dir / "src"),
     ]
     if network:
         args += ["-v", f"{WORK}/uv-cache:{WORK}/uv-cache"]
@@ -116,13 +147,43 @@ def docker(job_id: str, run_dir: Path, clone: Path, command: list[str], network:
     return code, out, round(time.monotonic() - started, 1)
 
 
-def pytest_phase(job_id, run_dir, clone, files, tag):
+def project_dir(src: Path, target_files: list[str]) -> str:
+    """The project the target tests belong to, relative to the checkout: the
+    nearest directory above them that is an installable Python project. ""
+    is the repository root. In a monorepo the subproject is installed and
+    pytest runs from it, as its own CI does."""
+    votes: dict[str, int] = {}
+    for f in target_files:
+        found = ""
+        parent = Path(f).parent
+        while parent != Path("."):
+            if envplan.is_project(src / parent):
+                found = parent.as_posix()
+                break
+            parent = parent.parent
+        votes[found] = votes.get(found, 0) + 1
+    return max(votes, key=lambda k: (votes[k], k == "")) if votes else ""
+
+
+def relative_ids(ids: list[str], proj: str) -> list[str]:
+    """Test ids relative to the project directory pytest runs from."""
+    if not proj:
+        return list(ids)
+    out = []
+    for nodeid in ids:
+        path, sep, rest = nodeid.partition("::")
+        out.append(os.path.relpath(path, proj) + sep + rest)
+    return out
+
+
+def pytest_phase(job_id, run_dir, clone, files, tag, proj=""):
     result = run_dir / f"result_{tag}.json"
     result.unlink(missing_ok=True)
     cmd = [str(run_dir / "venv/bin/python"), "-m", "pytest", "-p", "redfirst.plugin",
-           "-p", "no:cacheprovider", "-q", "-rN", *files]
+           "-p", "no:cacheprovider", "-q", "-rN", *relative_ids(files, proj)]
     code, out, secs = docker(job_id, run_dir, clone, cmd, network=False, timeout=TEST_TIMEOUT,
-                             env={"REDFIRST_RESULT": str(result), "PYTHONPATH": str(SRC_MOUNT)})
+                             env={"REDFIRST_RESULT": str(result), "PYTHONPATH": str(SRC_MOUNT)},
+                             workdir=run_dir / "src" / proj)
     (run_dir / f"log_{tag}.txt").write_text(out[-200_000:])
     data = json.loads(result.read_text()) if result.exists() else None
     if data is None:
@@ -137,7 +198,8 @@ def run_job(job: dict) -> dict:
     if final.exists():
         return json.loads(final.read_text())
     out_dir.mkdir(parents=True, exist_ok=True)
-    record = {"job": job, "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+    record = {"job": job, "harness": HARNESS, "image": IMAGE,
+              "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     run_dir = WORK / "runs" / job["id"]
     clone = None
     try:
@@ -151,11 +213,15 @@ def run_job(job: dict) -> dict:
         shutil.rmtree(run_dir, ignore_errors=True)
         (run_dir / "home").mkdir(parents=True)
         (run_dir / "tmp").mkdir()
+        write_identity(run_dir)
         sh(["git", "worktree", "add", "--quiet", "--detach", str(run_dir / "src"), plan.head], cwd=clone, timeout=900)
         merged = datetime.fromisoformat(job["merged_at"].replace("Z", "+00:00"))
-        info = envplan.plan(run_dir / "src", (merged + timedelta(days=1)).strftime("%Y-%m-%dT00:00:00Z"))
+        proj = project_dir(run_dir / "src", plan.files)
+        record["project_dir"] = proj
+        src = run_dir / "src" / proj
+        info = envplan.plan(src, (merged + timedelta(days=1)).strftime("%Y-%m-%dT00:00:00Z"), root=run_dir / "src")
         record["env"] = info
-        (run_dir / "setup.sh").write_text(envplan.script(info, str(run_dir / "src"), str(run_dir / "venv")))
+        (run_dir / "setup.sh").write_text(envplan.script(info, str(src), str(run_dir / "venv"), root=str(run_dir / "src")))
         code, out, secs = docker(job["id"], run_dir, clone, ["bash", str(run_dir / "setup.sh")], network=True, timeout=SETUP_TIMEOUT)
         (out_dir / "log_setup.txt").write_text(out[-200_000:])
         record["setup"] = {"returncode": code, "seconds": secs, "tail": out[-2500:]}
@@ -164,16 +230,16 @@ def run_job(job: dict) -> dict:
             return record
         record["python"] = (run_dir / "python.txt").read_text().strip() if (run_dir / "python.txt").exists() else None
         selection = plan.selection
-        head_run = pytest_phase(job["id"], run_dir, clone, selection, "head")
+        head_run = pytest_phase(job["id"], run_dir, clone, selection, "head", proj)
         if needs_file_fallback(head_run):
             selection = plan.files
-            head_run = pytest_phase(job["id"], run_dir, clone, selection, "head")
+            head_run = pytest_phase(job["id"], run_dir, clone, selection, "head", proj)
         record["selection"] = "files" if selection is plan.files else "tests"
         record["head_run"] = {k: head_run[k] for k in ("returncode", "seconds", "tail")}
         verdict, rows = judge(plan.targets, head_run, {"tests": {}, "collect_errors": []})
         if verdict != HEAD_NOT_GREEN:
             with code_at_base(run_dir / "src", plan):
-                base_run = pytest_phase(job["id"], run_dir, clone, selection, "base")
+                base_run = pytest_phase(job["id"], run_dir, clone, selection, "base", proj)
             record["base_run"] = {k: base_run[k] for k in ("returncode", "seconds", "tail")}
             verdict, rows = judge(plan.targets, head_run, base_run)
             (out_dir / "raw_base.json").write_text(json.dumps(base_run))

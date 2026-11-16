@@ -61,8 +61,8 @@ those, the one merged closest in time; up to ten candidates are checked.
    changed test modules. Edited means the function's syntax tree changed,
    decorators included (a new parametrize case counts; comments do not).
    No targets: `no_new_tests`, not judged.
-3. Environment: a Linux container (Debian bookworm, arm64) in a dedicated VM
-   that sees only the study folder. Python version from `requires-python`
+3. Environment: a Linux container (Debian trixie, arm64; bookworm in harness
+   v1, see Deviations) in a dedicated VM that sees only the study folder. Python version from `requires-python`
    (3.12 first, then 3.11, 3.13, 3.10, 3.9, 3.8 as allowed). The project is
    installed editable at head with its test extras, test requirement files,
    dependency groups or tool-specific dev dependencies, resolved with
@@ -143,7 +143,40 @@ discarded; these jobs are rerun in the main run with the frozen harness.
 
 ## Deviations
 
-None to the procedure. Added after the main run started, analysis only:
-`review.py` (one packet per `passes_without_fix` pull request for the
-manual labels) and a descriptive breakdown of `head_not_green` by head
-outcome in `analyze.py`. Neither changes a verdict.
+1. Harness v2, 2026-11-16, before any human job ran. The main run started
+   with harness v1 (commit 14274a9) and was stopped after 27 agent jobs (12
+   judged, 2 `passes_without_fix`; 9 `head_not_green`, 8 of them errors at
+   head). Reading the nine head failures showed two runner defects and some
+   environment gaps that would lose samples in both groups:
+   - defects: the environment's `bin` directory was not on `PATH`, so tests
+     that start the project's console scripts (`uvicorn` and the like) failed;
+     the container's uid had no passwd entry, so `getpass.getuser()` and
+     `pwd.getpwuid()` raised;
+   - gaps: pytest plugins that the project's own pytest configuration names
+     (`--timeout`, `-n`, `--cov`, `asyncio_mode` and similar) were not
+     installed; `requirements.txt` was not installed for repositories that
+     are not packages, and test or dev requirement files with other names
+     were missed; tests inside a monorepo subproject ran against the
+     repository root's environment instead of the subproject's (v2 installs
+     the subproject, a uv workspace member through the workspace lock, and
+     runs pytest from it);
+   - image: Debian bookworm (glibc 2.36, uv 0.9.30) became trixie (glibc
+     2.41, uv 0.13.8), so arm64 wheels built for manylinux 2.39 install, with
+     shared libraries that common packages load at import (Qt and OpenCV
+     GL/EGL, OpenMP, libsndfile, libmagic, ffmpeg, graphviz; Qt offscreen);
+     a uv version pinned by the project (`required-version`) is run through
+     `uvx`, and an exact Python pin (`==3.12.12`) is honoured;
+   - the OpenAI tokenizer files that tiktoken downloads on first use are
+     fetched once on the host and mounted read-only, since the test runs
+     have no network.
+   Smoke test before the rerun: of seven v1 failures re-run with v2 (five
+   head failures, two env failures), six reached a verdict and the seventh
+   needs the network; three v1 verdicts used as controls did not change.
+   Every job, the first 27 included, is rerun with v2 whatever its v1
+   verdict, so no job's inclusion depends on its outcome. v1 results are
+   kept and compared with v2 in the write-up. Procedure and verdict rules
+   are unchanged.
+2. Analysis only, added after the main run started: `review.py` (one packet
+   per `passes_without_fix` pull request for the manual labels) and a
+   descriptive breakdown of `head_not_green` by head outcome in
+   `analyze.py`. Neither changes a verdict.
