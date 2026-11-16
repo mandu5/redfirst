@@ -11,6 +11,7 @@ go into review/labels.json by hand: {"<job id>": {"label": "gap", "note": "..."}
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -34,15 +35,22 @@ def git_diff(clone: Path, base: str, head: str, paths: list[str]) -> str:
     return "\n".join(lines)
 
 
-def packet(rec: dict) -> str:
+def packet(rec: dict, case: str | None = None) -> str:
+    """case: a neutral name for blind labelling; hides the group, the agent
+    and the pull request link so the labeller cannot tell agent from human."""
     job, plan = rec["job"], rec["plan"]
     clone = WORK / "repos" / job["repo"].replace("/", "__")
-    out = [
-        f"# {job['id']}",
-        "",
-        f"- {job['group']} / {job.get('agent')}: {job.get('title')}",
-        f"- {job.get('url')} merged {job.get('merged_at')}",
-        f"- selection: {rec.get('selection')}, python {rec.get('python')}",
+    if case:
+        head = [f"# {case}", "", f"- title: {job.get('title')}"]
+    else:
+        head = [
+            f"# {job['id']}",
+            "",
+            f"- {job['group']} / {job.get('agent')}: {job.get('title')}",
+            f"- {job.get('url')} merged {job.get('merged_at')}",
+            f"- selection: {rec.get('selection')}, python {rec.get('python')}",
+        ]
+    out = head + [
         "",
         "| test | kind | head | base |",
         "| --- | --- | --- | --- |",
@@ -60,16 +68,24 @@ def main():
     ap.add_argument("--results", default=str(WORK / "results"))
     ap.add_argument("--out", default="review")
     ap.add_argument("--verdict", default="passes_without_fix")
+    ap.add_argument("--blind", help="write neutral case names here instead, with the key in this file")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    n = 0
-    for f in sorted(Path(args.results).glob("*/result.json")):
-        rec = json.loads(f.read_text())
-        if rec.get("verdict") != args.verdict:
-            continue
-        (out / f"{rec['job']['id']}.md").write_text(packet(rec))
-        n += 1
+    recs = [json.loads(f.read_text()) for f in sorted(Path(args.results).glob("*/result.json"))]
+    recs = [r for r in recs if r.get("verdict") == args.verdict]
+    key = {}
+    if args.blind:
+        order = sorted(recs, key=lambda r: hashlib.sha256(f"redfirst-blind:{r['job']['id']}".encode()).hexdigest())
+        for i, rec in enumerate(order, 1):
+            case = f"case-{i:02d}"
+            key[case] = rec["job"]["id"]
+            (out / f"{case}.md").write_text(packet(rec, case))
+        Path(args.blind).write_text(json.dumps(key, indent=1) + "\n")
+    else:
+        for rec in recs:
+            (out / f"{rec['job']['id']}.md").write_text(packet(rec))
+    n = len(recs)
     labels = out / "labels.json"
     if not labels.exists():
         labels.write_text("{}\n")
