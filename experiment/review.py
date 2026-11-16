@@ -17,7 +17,7 @@ import os
 import subprocess
 from pathlib import Path
 
-WORK = Path(os.environ.get("RF_WORK", "/Users/gosmain/.cache/f2p-work"))
+WORK = Path(os.environ.get("RF_WORK", Path.home() / ".cache" / "f2p-work"))
 LABELS = ("gap", "unobservable", "environment", "test_side_fix", "other")
 MAX_LINES = 400
 

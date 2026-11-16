@@ -35,7 +35,7 @@ from redfirst.repo import code_at_base, make_plan  # noqa: E402
 
 import envplan  # noqa: E402
 
-WORK = Path(os.environ.get("RF_WORK", "/Users/gosmain/.cache/f2p-work"))
+WORK = Path(os.environ.get("RF_WORK", Path.home() / ".cache" / "f2p-work"))
 IMAGE = os.environ.get("RF_IMAGE", "rf-runner:2")
 HARNESS = "v2"
 SRC_MOUNT = WORK / "redfirst-src"
